@@ -1,0 +1,581 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -448,
+        -160
+      ],
+      "id": "7d55b9f6-7523-4611-80f7-82a2da70913b",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HBbtfy6xuLr7EbJM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        144
+      ],
+      "id": "451a5937-acfe-48c1-8e5a-3e05e085e593",
+      "name": "GMAIL PRIORIZACION",
+      "credentials": {
+        "groqApi": {
+          "id": "mZlfGz0WaUVfKNt7",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"resumen\": \"string\",\n  \"prioridad\": \"string\",\n  \"accion\": \"string\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        128,
+        144
+      ],
+      "id": "42882653-463d-4757-923b-06594660aeb4",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analiza el siguiente correo.\n\nAsunto:\n{{ $json.Subject }}\n\nRemitente:\n{{ $json.From }}\n\nContenido:\n{{ $json.snippet }}\n\nClasifica el correo y devuelve únicamente un JSON válido.\n\nReglas:\n- \"prioridad\" debe ser una de: Alta, Media o Baja.\n- \"accion\" debe ser exactamente una de:\n  - Responder\n  - Responder con plantilla\n  - Archivar\n  - Escalar\n  - Urgente\n  - Programar seguimiento\n- Si es una oferta laboral, usa \"Programar seguimiento\".\n- No escribas ningún texto fuera del JSON.\n\nFormato de respuesta:\n\n{\n  \"resumen\": \"...\",\n  \"prioridad\": \"Alta | Media | Baja\",\n  \"accion\": \"Responder | Responder con plantilla | Archivar | Escalar | Urgente | Programar seguimiento\"\n}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Eres un asistente especializado en gestión de correos electrónicos.\n\nAnaliza el correo recibido.\n\nClasifica la prioridad.\n\nResume el contenido.\n\nElige una única acción.\n\nDevuelve únicamente un JSON válido.\n\nNo escribas texto antes ni después del JSON.",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -16,
+        -160
+      ],
+      "id": "5f0cdcc6-fdd0-4f3d-9a81-236f0ea3f770",
+      "name": "AI Agent",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "3a64ad00-3d06-8035-8d5c-ebe145e19cb7",
+          "mode": "list",
+          "cachedResultName": "3a64ad00-3d06-8035-8d5c-ebe145e19cb7",
+          "cachedResultUrl": "https://app.notion.com/p/3a64ad003d0680358d5cebe145e19cb7"
+        },
+        "title": "={{ $('Gmail Trigger').item.json.Subject }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Remitente|rich_text",
+              "textContent": "={{ $('Gmail Trigger').item.json.From }}"
+            },
+            {
+              "key": "Resumen IA|rich_text",
+              "textContent": "={{ $json.output.resumen }}"
+            },
+            {
+              "key": "Prioridad|rich_text",
+              "textContent": "={{ $json.output.prioridad }}"
+            },
+            {
+              "key": "Acción|rich_text",
+              "textContent": "={{ $json.output.accion }}"
+            },
+            {
+              "key": "Estado|rich_text",
+              "textContent": "Procesado por IA"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        -176
+      ],
+      "id": "b4b2bbce-2038-4888-9968-4719c557a603",
+      "name": "Create a database page",
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "credentials": {
+        "notionApi": {
+          "id": "4cdyaFYi1pIvwrCY",
+          "name": "Notion account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b72b6a75-8e64-4aa7-b13e-2f3480b3f8ec",
+              "leftValue": "={{ $json.labels.some(label => label.name === \"Procesado-IA\") }}",
+              "rightValue": "Procesado-IA",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        -240,
+        -160
+      ],
+      "id": "9fdb8ab1-b8ab-4e55-bcb2-22fac885d6ed",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "3a64ad00-3d06-8035-8d5c-ebe145e19cb7",
+          "mode": "list",
+          "cachedResultName": "3a64ad00-3d06-8035-8d5c-ebe145e19cb7",
+          "cachedResultUrl": "https://app.notion.com/p/3a64ad003d0680358d5cebe145e19cb7"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Título|title",
+              "title": "={{ $('Gmail Trigger').item.json.Subject }}"
+            },
+            {
+              "key": "Remitente|rich_text",
+              "textContent": "={{ $('Gmail Trigger').item.json.From }}"
+            },
+            {
+              "key": "Estado|rich_text",
+              "textContent": "Error IA"
+            },
+            {
+              "key": "Resumen IA|rich_text",
+              "textContent": "={{ $json.error.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        112
+      ],
+      "id": "13dca278-391f-4e0f-8f25-bcebb8364ff2",
+      "name": "Create a database page1",
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "credentials": {
+        "notionApi": {
+          "id": "4cdyaFYi1pIvwrCY",
+          "name": "Notion account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_7816322782077319616"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        112
+      ],
+      "id": "8a888992-7f49-4e51-8ccd-ccd2135cfa07",
+      "name": "Add label to message",
+      "webhookId": "d3ab7b95-a5b0-457e-a8e8-27300c0dea96",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HBbtfy6xuLr7EbJM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "12809281-e807-4766-baab-02c9559db9ab",
+              "leftValue": "={{ $json.property_prioridad }}",
+              "rightValue": "Alta",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        560,
+        -176
+      ],
+      "id": "4d6e0090-ba55-4347-83ef-71e12316f14e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BKA7KQMK3",
+          "mode": "list",
+          "cachedResultName": "general-ia"
+        },
+        "message": "=📩 Correo de prioridad ALTA\nDe: {{ $('Gmail Trigger').item.json.From }}\nAsunto: {{ $('Gmail Trigger').item.json.Subject }}\nResumen IA: {{ $('Create a database page').item.json.property_resumen_ia }}\n",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Aprobar",
+            "disapproveLabel": "Rechazar"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        800,
+        -272
+      ],
+      "id": "22efc488-419f-4679-999f-a0972ef7f219",
+      "name": "Send message and wait for response",
+      "webhookId": "d6753b5c-009d-4cdc-9c0e-3208b436ca02",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "qkVBXDMQMDIkcEDf",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ba6c385f-d193-449b-9980-4a0798df199f",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "true ",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        -304
+      ],
+      "id": "7e5def4e-bb6e-4141-8a17-d14378de40e8",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Create a database page').item.json.id }}",
+          "mode": "id"
+        },
+        "simple": "={{ $('Create a database page').item.json.id }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Estado|rich_text",
+              "textContent": "Aprobado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        -368
+      ],
+      "id": "93f8b30f-0be6-4534-9533-44d03133bda4",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "4cdyaFYi1pIvwrCY",
+          "name": "Notion account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Create a database page').item.json.id }}",
+          "mode": "id"
+        },
+        "simple": "={{ $('Create a database page').item.json.id }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Estado|rich_text",
+              "textContent": "Rechazado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        -128
+      ],
+      "id": "f4107bc4-0603-4925-9c5c-ff2e52c5adb4",
+      "name": "Update a database page1",
+      "credentials": {
+        "notionApi": {
+          "id": "4cdyaFYi1pIvwrCY",
+          "name": "Notion account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GMAIL PRIORIZACION": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a database page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a database page": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update a database page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page1": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b38233a7-6575-418f-93ef-cf1f1b6dc94c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "82fced451f02e595ddb04bea0878ae5808d4b8db5a27d70c2d7080ccff9e5f12"
+  },
+  "nodeGroups": [],
+  "id": "xhBGbqaMAcYkGYe6",
+  "tags": []
+}

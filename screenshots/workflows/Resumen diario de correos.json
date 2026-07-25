@@ -1,0 +1,148 @@
+{
+  "name": "Resumen diario de correos",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "34a90727-74ff-4cd0-9a35-24789b2e8584",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "3a64ad00-3d06-8035-8d5c-ebe145e19cb7",
+          "mode": "list",
+          "cachedResultName": "3a64ad00-3d06-8035-8d5c-ebe145e19cb7",
+          "cachedResultUrl": "https://app.notion.com/p/3a64ad003d0680358d5cebe145e19cb7"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Estado|rich_text",
+              "condition": "equals",
+              "richTextValue": "Aprobado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "5f997a48-2335-489e-b0ae-a69efe795368",
+      "name": "Get many database pages",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "4cdyaFYi1pIvwrCY",
+          "name": "Notion account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let html = \"<h2>Resumen diario de correos aprobados</h2>\";\n\nif (items.length === 0) {\n  html += \"<p>No hay correos aprobados el día de hoy.</p>\";\n} else {\n  for (const item of items) {\n    html += `\n      <p>\n        <b>${item.json.property_t_tulo || \"(sin asunto)\"}</b><br>\n        Remitente: ${item.json.property_remitente || \"\"}<br>\n        Resumen: ${item.json.property_resumen_ia || \"\"}<br>\n        Prioridad: ${item.json.property_prioridad || \"\"}\n      </p>\n      <hr>\n    `;\n  }\n}\n\nreturn [{ json: { html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "00152951-5b86-46af-857b-54fa0cecc6fb",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sendTo": "antonelladiaz9@gmail.com",
+        "subject": "Resumen diario de correos",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "da7bb38b-afcc-40a1-a3e0-8af07daae55f",
+      "name": "Send a message",
+      "webhookId": "d1d9d9eb-2625-4fd7-93c0-ed1218587cff",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HBbtfy6xuLr7EbJM",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "05f5179a-9e08-4d26-ad0b-f7b866addcb1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "82fced451f02e595ddb04bea0878ae5808d4b8db5a27d70c2d7080ccff9e5f12"
+  },
+  "nodeGroups": [],
+  "id": "oWL6kFm1Rit1vxpJ",
+  "tags": []
+}
